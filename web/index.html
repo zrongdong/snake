@@ -1,0 +1,369 @@
+<HTML>
+<HEAD>
+    <title>Snake</title>
+    <script>
+        window.resizeTo(410, 450)
+
+        function unSel() {
+            document.execCommand("Unselect");
+            window.setTimeout("unSel()", 100);
+        }
+
+        unSel();
+        /*
+        MB 食物颜色
+        SB 蛇的颜色
+         */
+    </script>
+    <style>
+        .MB {
+            BACKGROUND-COLOR: firebrick;
+            CURSOR: default;
+            HEIGHT: 22px;
+            WIDTH: 22px
+        }
+
+        .SB {
+            BACKGROUND-COLOR: slategray;
+            CURSOR: default;
+            HEIGHT: 22px;
+            WIDTH: 22px
+        }
+
+        .BK {
+            BACKGROUND-COLOR: white;
+            CURSOR: default;
+            HEIGHT: 22px;
+            WIDTH: 22px
+        }
+
+        .GT {
+            BORDER-BOTTOM: deepskyblue thin solid;
+            BORDER-LEFT: deepskyblue thin solid;
+            BORDER-RIGHT: deepskyblue thin solid;
+            BORDER-TOP: deepskyblue thin solid;
+            CURSOR: default
+        }
+
+    </style>
+</HEAD>
+
+<BODY bgcolor="#EAF0F8" onkeydown="return keyControl();" onkeyup="return keyUp()" topmargin="10" leftmargin="10"
+      rightmargin="10"
+      bottommargin="0" scroll=no>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" height="100%">
+    <tr>
+        <td width="100%" height="100%" align="center">
+            <table cellspacing=2 cellpadding=0 class=gt border=0 bordercolor="#EAF0F8" bgcolor="#EAF0F8">
+                <tr>
+                    <td valign="top">
+                        <table cellspacing=0 cellpadding=0 class=gt border=1 bordercolor="#EAF0F8" style="">
+                            <Tbody id=GameBar>
+
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</BODY>
+</HTML>
+<script>
+    // 设置游戏颜色
+    function setClass(x, y, cName) {
+        GameBar.children[y].children[x].className = cName;
+    }
+
+    function getClass(x, y) {
+        return GameBar.children[y].children[x].className;
+    }
+
+    // 定义蛇链表节点类
+    class SnakeNode {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.next = null;
+        }
+    }
+
+    // 定义蛇链表类
+    class Snake {
+        constructor() {
+            this.head = null;
+            this.next = null;
+        }
+
+        // 添加一个头节点
+        addHead(x, y) {
+            const newNode = new SnakeNode(x, y);
+            newNode.next = this.head;
+            this.head = newNode;
+            // 设置颜色
+            setClass(x, y, "SB");
+        }
+
+        // 删除一个尾节点
+        deleteTail() {
+            let current = this.head;
+            let pre = null;
+            while (current.next !== null) {
+                pre = current;
+                current = current.next;
+            }
+            setClass(current.x, current.y, "BK")
+            pre.next = null;
+        }
+
+
+        // 移动
+        move(direction) {
+            // 新增一个头，删除一个尾，即为移动
+
+            // 获取头节点
+            let head = this.head;
+            // 判断是否可以移动
+            if (
+                (head.x === 0 && direction === "left") ||
+                (head.x === bar_width - 1 && direction === "right") ||
+                (head.y === 0 && direction === "up") ||
+                (head.y === bar_height - 1 && direction === "down")
+            ) {
+                gameOver();
+                return false;
+            }
+
+            let newx = head.x
+            let newy = head.y
+
+            // 新的头的位置
+            if (direction === 'left') {
+                newx = head.x - 1;
+            }
+            if (direction === 'right') {
+                newx = head.x + 1;
+            }
+            if (direction === 'up') {
+                newy = head.y - 1;
+            }
+            if (direction === 'down') {
+                newy = head.y + 1;
+            }
+
+            // 判断是否撞到自己
+            if (getClass(newx, newy) === "SB") {
+                // 加这一行代码是为了显示撞到自己的效果
+                this.addHead(newx, newy);
+                gameOver();
+                return false;
+            }
+
+            // 如果是食物，则不删除尾节点
+            if (getClass(newx, newy) === 'MB') {
+                createFood();
+            } else {
+                this.deleteTail()
+            }
+            this.addHead(newx, newy);
+        }
+
+    }
+
+    // 绘制表格
+    function drawTable() {
+        // 在 GameBar中绘制一个20 * 20 的表格
+        var table = document.getElementById("GameBar");
+
+        // 创建tr
+        for (var i = 0; i < bar_height; i++) {
+            var tr = document.createElement("tr");
+            table.appendChild(tr);
+            // 创建td
+            for (var j = 0; j < bar_width; j++) {
+                var td = document.createElement("td");
+                td.className = "BK";
+                tr.appendChild(td);
+            }
+        }
+    }
+
+    var keyDown = false;
+
+    // 控制方向
+    function keyControl() {
+        /*
+        如果方向是移动方向则加速
+         */
+        var key = event.keyCode;
+        if (keyDown) {
+            return;
+        }
+
+        if(game_status !== 1){
+            return;
+        }
+
+        keyDown = true;
+        switch (key) {
+            case 37:
+                if (direction === "right") {
+                    return false;
+                }
+                direction = "left";
+                break;
+            case 38:
+                if (direction === "down") {
+                    return false;
+                }
+                direction = "up";
+                break;
+            case 39:
+                if (direction === "left") {
+                    return false;
+                }
+                direction = "right";
+                break;
+            case 40:
+                if (direction === "up") {
+                    return false;
+                }
+                direction = "down";
+                break;
+        }
+
+        setTimer(100)
+    }
+
+    function keyUp() {
+        if(game_status !== 1){
+            return;
+        }
+        keyDown = false;
+
+        // 主要是用于控制移动速度
+        var key = event.keyCode;
+        // switch (key) {
+        //     case 37:
+        //         direction = "left";
+        //         break;
+        //     case 38:
+        //         direction = "up";
+        //         break;
+        //     case 39:
+        //         direction = "right";
+        //         break;
+        //     case 40:
+        //         direction = "down";
+        //         break;
+        // }
+        setTimer(200)
+    }
+
+    // 创建一条蛇
+    function createSnake() {
+        // 原则上，会在左上角开始出发，创建一条蛇
+        // 蛇的长度为3
+
+        // 判断是否空白块
+        for (var i = 0; i < snake_length; i++) {
+            if (getClass(i, 0) !== "BK") {
+                return false;
+            }
+        }
+
+        snakeList = new Snake();
+        for (var i = 0; i < snake_length; i++) {
+            snakeList.addHead(i, 0);
+        }
+        // 行进方向
+        direction = 'right'
+    }
+
+    // 创建食物
+    function createFood() {
+        // 食物的位置是随机的
+        // 食物的位置不能和蛇的位置重合
+        // 食物的位置不能和障碍物
+
+        // 创建x和y两个随机数
+        var x = Math.floor(Math.random() * bar_width);
+        var y = Math.floor(Math.random() * bar_height);
+
+        // 判断当前位置是否空白
+        if (getClass(x, y) !== "BK") {
+            return createFood();
+        }
+
+        setClass(x, y, "MB");
+    }
+
+    // 开始游戏
+    function beginGame() {
+        if (game_status !== 0) {
+            return false;
+        }
+        game_status = 1;
+
+        createSnake();
+        createFood();
+
+        // 创建一个定时任务
+        setTimer(200);
+    }
+
+    // 设置定时器 传入速度
+    function setTimer(speed) {
+        clearInterval(timer)
+        timer = setInterval(function () {
+            move()
+        }, speed);
+
+
+    }
+
+    // 游戏结束
+    function gameOver() {
+        // 游戏结束
+        game_status = 0;
+        // 清除定时器
+        clearInterval(timer);
+        console.log("游戏结束");
+
+
+    }
+
+    // 蛇的移动
+    function move() {
+        snakeList.move(direction);
+    }
+
+
+</script>
+<script>
+    // 游戏的宽高
+    var bar_height = 40;
+    var bar_width = 40;
+
+    // 蛇开始的长度
+    var snake_length = 3;
+
+    // 游戏状态 0-未开始,1-正在游戏中
+    var game_status = 0;
+
+    // 当前的行进方向
+    var direction = 'right';
+
+    // 当前蛇链表
+    var snakeList;
+
+    // 定时器
+    var timer = null;
+
+
+    drawTable();
+    beginGame();
+</script>
+
+
